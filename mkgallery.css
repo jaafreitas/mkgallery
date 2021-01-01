@@ -1,0 +1,10 @@
+  .contents { 
+    margin-right: 2em;
+    margin-left: 2em;
+    text-align: justify;
+  }
+  BODY {
+    color: black;
+    background: white;
+  }
+  DIV { margin-left: 0em; margin-right: 2em ; text-align: justify }
