@@ -2,11 +2,8 @@
 <P>
 <ul>
 <li><STRONG>Martin Aspeli</STRONG>
-Addition of comments system, addition of command line options, addition of
-config file, various adjustments and optimizations and changes to the way
-images are 'discovered' and included in the gallery.
-<P>
+<p>Addition of comments system, addition of command line options, addition of config file, various adjustments and optimizations and changes to the way images are 'discovered' and included in the gallery.
 <li><STRONG>Adilson Freitas</STRONG>
-MkGallery logo image.
+<p>MkGallery logo image.
 </ul>
 </DIV>
