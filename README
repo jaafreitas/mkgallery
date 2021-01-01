@@ -1,22 +1,18 @@
 How it works:
-	just enter in a folder with a lot of images and it will create for you
-	the thumbnails and webpages for you. Easy? :)
+	Enter in a folder with jpg files and choose a name for the gallery.
+	You can also specify other option in the command line. See the help
+	('mkgallery -h') for more information.
 
 What we need:
-	wow, really a lot of tools... Maybe the most dificult one is the convert
-	utility which comes with ImageMagick, but you can use another program to
-	do this job (create the thumbnails).
+	Basicly we need ImageMagic packages (convert and identify). The other
+	utilities are essential in any Unix system.
 
-To do: there are some parts of the script that sounds little bad for me, so why
-	dont you suggest improves to it? :)
-
-Futures: we have a lot of functions in the script, so its really easy to change
-	part on it. We have a gallery_start, gallery_end and other things to
-	make it cleaner. We also have CSS and HTML 4.0 validy pages checked with
-	the validator in the W3C website. One of the most interesting things is
-	we can change all colors with the gallery.css file. We dont need to
- 	recreate all pages because we decided to change the background color :)
-
-Bugs: 
-	NONE! :) Bug I would like to hear if you found one :)
-
+Features:
+	The script is divided in many functions to help we change anything
+	without breaking other functions. In the files start_html and
+	end_html we can put html code to be inserted in the top and bottom
+	respectively. All pages are HTML 4.0 checked with the validadtor in
+	the W3C website. With the CSS file is possible to change any color,
+	font, style without changing all HTML pages. Also you can specify
+	only one css file for all your pages. Comments can be added for
+	any image.

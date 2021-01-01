@@ -1,6 +1,6 @@
 #!/bin/bash
 # Adriano Freitas <afreitas@geocities.com>
-# Version: 1.0pre2     http://www.geocities.com/jaafreitas/Linux/mkgallery/
+# Version: 1.1     http://mkgallery.sourceforge.net
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,87 +16,251 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-# Make your choices
-pic_per_line=4		# how many pictures per line? if 4 it works "great" for me
-lines=5       		# how many lines? It works with any number
-theme=gallery		# want a name for your gallery?
+##
+# Global Variables: Change as appropriate
+###########################################
 
-# You dont need to change anything below this
-total=`find *.jpg | grep -vc " ._"` # find the amount of pictures in the current folder
-pic_in_gallery=`echo $pic_per_line*$lines|bc`  	# how many picture per gallery?
-gallery=1		# in which gallery are we?
-pic_number=1		# picture number
-colspan=`echo "($pic_per_line*2)-1"|bc` # how many spaces per line?
-td_width=`echo "(100-($pic_per_line-1)*$pic_per_line)/$pic_per_line"|bc`
+config="$HOME/.mkgallery"         # default config file
+ 
+# Defaut values - may be overridden in the config file with config directives
+# with the same names as the variables
+
+pic_per_line=4			# how many pictures per line?
+lines=5				# how many lines?
+tnprefix="tn_"			# prefix for thumbnail files
+gallery_start="start_html"	# html code before the table
+gallery_end="end_html"		# html code after the table
+
+## You do not need to change anything below this point ##
+#########################################################
+
+
+##
+# Control variables
+####################
+name=""                                         # name of gallery
+file=""                                         # file basename
+title=""                                        # title of gallery
+comments=""                                     # comments file
+total=""                                        # total number of jpegs
+pic_in_gallery=""                           	# how many picture per gallery?
+gallery=1		                        # in which gallery are we?
+single_gallery=""                               # only one
+pic_number=1                    		# picture number
+colspan=""                                      # how many spaces per line?
+td_width=""                                     # how wide is a cell?
+css_file=""					# CSS file name
+
+## 
+# Functions
+############
+
+
+do_echo_usage () # display usage
+{
+    echo "Usage: In subdirectory of gallery: 
+    mkgallery name [-c comments_file] [-t title] [-b basename] [-o file] [-s css_file] [-U]
+    mkgallery -u [-c comments_file]
+    mkgallery -h"
+}
+
+do_echo_help () # display usage and help
+{
+    do_parse_config;
+    do_echo_usage;
+    echo "
+      name     - Name of the gallery (e.g. \"Family\"
+      -t title - Title of the gallery (e.g. \"Family Gallery\")
+      -b name  - Basename of gallery pages (e.g. family)
+      -c file  - Comments file (default is \"comments\")
+      -o file  - Configuration file. Default is ~/.mkgallery
+      -s file  - CSS file name (e.g. \"Family.css\")
+      -u       - Do not create gallery, only create/update comments file
+      -U       - Do not create/update gallery, only create gallery
+      -h       - Display this help message
+
+If title or basename is not given, they default to name. The file 
+basename will be in all lowercase. 
+
+If the comments file is not given, it defaults to the file 'comments' in the 
+current directory, if it exists. Unless -U is specified, the comments file will
+be updated to include all .jpg files in the current directory. 
+
+Use the -u option to create or update the comments file without creating the 
+gallery. This will create a comments file containing all .jpg files in the 
+current directory with no comments. Edit this file to add comments to 
+individual pictures. Comments should be added after the image file name, and 
+must be separated from the filename by whitespace. The comment will be taken 
+as HTML text, so HTML tags (such as <i> and <b>) can be used to mark up the 
+text.
+
+The gallery images will be output, left to right, $pic_per_line pictures per
+line, $lines lines per page, in the order they are listed in comments. (These
+values can be changed by editing the script or the config file) The script will
+add filenames to the comments file in alphabetical order, but will not alter 
+any entries already in the file. Warnings will issued for any file found in 
+the comments file but not in the directory. Note that this might cause some 
+incorrect output to be generated.
+
+A thumbnail will be generated for each image unless one already exists. 
+Thumbnails are .jpg files with the special prefix $tnprefix (which can be 
+altered by editing the script or config file). Thumbnails are ignored by the 
+comments file generator (and hence the -u option). To force regeneration of 
+thumbnails, simply delete the $tnprefix*.jpg file(s).
+
+If you want something before starting the table with the thumbnails simply
+put html code in the file $gallery_start and if you want to put something
+after the thumnails again put html code in the file $gallery_end. To use 
+the same CSS file for all your galleries, use the -s option from the command
+line.
+
+The configuration file consists of option names followed by some whitespace
+followed by an option value, one entry per line. The recognized options are:
+
+    pic_per_line  <number> - The number of thumbnails displayed per line
+    lines         <number> - The number of lines per page
+    tnprefix      <number> - The thumbnail prefix
+    gallery_start <where>  - Some html code before the table
+    gallery_end   <where>  - Some html code after the table
+
+If one or more of these is not set in the config file, or the config file is
+missing, defaut values, set at the beginning of the script, will be used.
+"
+}
+
+do_find_total () # set the $total variable to the total number of images
+{
+    total=0
+    for pic in `cat $comments | sed 's/\([^[:space:]]*\.jpg\).*/\1/'`
+	do
+	    if [ -r "$pic" ]
+		then
+		    total=$(($total+1))
+	    else
+		echo "Warning: $pic listed in $comments but not found!" >&2
+	fi
+    done	    
+}
+
+do_parse_config () # parse the config file
+{
+    [ -r "$config" ] || return;
+
+    local ppl=`egrep "pic_per_line" $config | \
+		sed 's/^[[:space:]]*pic_per_line[[:space:]]*//'`
+
+    [ "$ppl" ] && pic_per_line=$ppl
+	
+    local ln=`egrep "lines" $config | \
+		sed 's/^[[:space:]]*lines[[:space:]]*//'`
+
+    [ "$ln" ] && lines=$ln
+
+    local prefix=`egrep "tnprefix" $config | \
+		sed 's/^[[:space:]]*tnprefix[[:space:]]*//'`
+
+    [ "$prefix" ] && tnprefix=$prefix
+    
+    local gs=`egrep "gallery_start" $config | \
+    		sed 's/^[[:space:]]*gallery_start[[:space:]]*//'`
+		
+    [ "$gs" ] && gallery_start=$gs
+
+    local ge=`egrep "gallery_end" $config | \
+    		sed 's/^[[:space:]]*gallery_end[[:space:]]*//'`
+		
+    [ "$ge" ] && gallery_end=$ge
+    
+}
+
+do_make_comments () # make the comments file
+{
+    if [ ! -r "$comments" ] 
+	then
+	    touch "$comments"
+	    if [ ! -f "$comments" ] 
+		then
+		    echo "Could not create $comments" >&2
+		    exit 1
+	    fi
+	    do_make_comments
+    fi
+
+    for jpeg in `ls *.jpg | egrep -v "^$tnprefix"`
+	do
+	    egrep "^$jpeg" $comments >/dev/null || \
+		echo $jpeg >> $comments
+    done
+}
 
 do_maths()  # let's do some maths
 {
 
 # if exist only one gallery
-if [ ! $gallery ]
+if [ $single_gallery ]
   then
     untill=$total
     echo "    <TD class=\"color2\" COLSPAN=\"$colspan\">
-      Showing 1 - $untill of $total pictures" >> $theme".html"
+      Showing 1 - $untill of $total pictures" >> $file$gallery".html"
 
 # here for many galleries
   else
-    if [ `echo $gallery*$pic_in_gallery|bc` -gt $total ]
+### echo $((08*20))
+### bash: 08: value too great for base (error token is "08")
+###    if [ $(($gallery*$pic_in_gallery)) -gt $total ]
+    if [ `expr $gallery '*' $pic_in_gallery` -gt $total ]
       then
         untill=$total
       else
-        untill=`echo $gallery*$pic_in_gallery|bc`
+        untill=`expr $gallery '*' $pic_in_gallery`
     fi
-
 # when there are more pics than the total per gallery
 # it will need more galleries
-if [ $total -gt $pic_in_gallery ]
-  then
-    echo -n "    <TD class=\"color2\" COLSPAN=\"$colspan\">
-      Showing `echo "($gallery-1)*$pic_in_gallery+1"|bc` - $untill of $total pictures" >> $theme$gallery".html"
-
-# which are the previous and next page?
-    previous=`expr $gallery - 1`
-    if [ $previous -gt 0 ]
+    if [ $total -gt $pic_in_gallery ]
       then
-      if [ $previous -lt 10 ]
-        then
-          previous=0$previous
-      fi
-    fi
-    next=`expr $gallery + 1`
-    if [ `echo "$gallery*$pic_in_gallery"|bc` -lt $total ]
-      then
-      if [ $next -lt 10 ]
-        then
-          next=0$next
-      fi
-      else
-        next=0
-    fi
+        echo -n "    <TD class=\"color2\" COLSPAN=\"$colspan\">
+      Showing `echo "($gallery-1)*$pic_in_gallery+1"|bc` - $untill of $total pictures" >> $file$gallery".html"
+        previous=`echo $gallery-1|bc`
+        if [ $previous -gt 0 ]
+          then
+            if [ $previous -lt 10 ]
+              then
+                previous=0$previous
+            fi
+        fi
+        next=`echo $gallery+1|bc`
+        if [ `echo $gallery*$pic_in_gallery|bc` -lt $total ]
+          then
+            if [ $next -lt 10 ]
+              then
+                next=0$next
+            fi
+          else
+            next=0
+        fi
 
 # we dont need a link for previous if it doesnt exist
-    if [ $previous = 0 ]
-      then
-        echo -n " [ <FONT COLOR=\"gray\">&#171; Previous</FONT> | " >> $theme$gallery".html"
-      else
-        echo -n " [ <A HREF=\""$theme""$previous".html\">&#171; Previous</A> | " >> $theme$gallery".html"
-    fi
+        if [ $previous = 0 ]
+          then
+            echo -n " [ <FONT COLOR=\"gray\">&#171; Previous</FONT> | " >> $file$gallery".html"
+          else
+            echo -n " [ <A HREF=\""$file""$previous".html\">&#171; Previous</A> | " >> $file$gallery".html"
+        fi
 # we dont need a link for next if it doesnt exist
-    if [ $next = 0 ]
-      then
-        echo "<FONT COLOR=\"gray\">Next &#187;</FONT> ]" >> $theme$gallery".html"
-      else
-        echo "<A HREF=\""$theme""$next".html\">Next &#187;</A> ]" >> $theme$gallery".html"
+        if [ $next = 0 ]
+          then
+            echo "<FONT COLOR=\"gray\">Next &#187;</FONT> ]" >> $file$gallery".html"
+          else
+            echo "<A HREF=\""$file""$next".html\">Next &#187;</A> ]" >> $file$gallery".html"
+        fi
     fi
 fi
-fi
-echo "    </TD>" >> $theme$gallery".html"
+echo "    </TD>" >> $file$gallery".html"
 }
 
 do_gallery_new_line()  # it makes the line without thumbnails in the table
 {
-cat >> $theme$gallery".html" << EOF
+cat >> $file$gallery".html" << EOF
   </TR>
   <TR>
     <TD COLSPAN="$colspan">
@@ -113,38 +277,73 @@ do_gallery_start()  # it starts the head and other inicial things
 # we dont need 01 if we only have one
 if [ $total -le $pic_in_gallery ]
   then
+    single_gallery=1
     gallery=""
 fi
-echo $theme$gallery"..."
-cat > $theme$gallery".html" << EOF
+
+echo $file$gallery"..."
+cat > $file$gallery".html" << EOF
+
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
 <HTML>
 <HEAD>
-  <TITLE> $theme $gallery </TITLE>
+  <TITLE>$title</TITLE>
   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; CHARSET=iso-8859-1">
-  <LINK REL="stylesheet" HREF="$theme.css" TYPE="text/css">
+  <LINK REL="stylesheet" HREF="$css_file" TYPE="text/css">
 </HEAD>
 <BODY>
+EOF
+
+# Read the gallery_start html code
+if [ -r $gallery_start ]
+  then
+    cat  $gallery_start >> $file$gallery".html"
+fi
+
+cat >> $file$gallery".html" << EOF
 <CENTER>
 <TABLE WIDTH="90%" ALIGN="center">
   <TR>
     <TD class="color1" COLSPAN="$colspan">
-      <FONT class="color1"><B> $theme $gallery </B></FONT>
+      <FONT class="color1"><STRONG>`echo -n $name | tr [:lower:] [:upper:]`</STRONG></FONT>
     </TD>
   </TR>
   <TR>
 EOF
+## CSS Bug: 8bit characters doenst work with uppercase (only
+## tested with netscape 4.75)
 
 do_maths  # we need the  menu < previous | next > in the beginning
 do_gallery_new_line  # put a line without thumbs after the menu
 }
+do_gallery_end()  # here comes the end
+{
+do_maths  # we need the menu < previous | next > in the end
+cat >> $file$gallery".html" << EOF
+  </TR>
+</TABLE>
+</CENTER>
+EOF
+
+# Read the gallery_end html code
+if [ -r $gallery_end ]
+  then
+    cat $gallery_end >> $file$gallery".html"
+fi
+
+cat >> $file$gallery".html" << EOF
+</BODY>
+</HTML>
+EOF
+}
+
 
 # now it makes the gallery looks better if we have only one line
 do_fix_gallery()
 {
-while [ `expr $pic_number % $pic_per_line` != 0 ]
+while [ $(($pic_number % $pic_per_line)) != 0 ]
   do
-    cat >> $theme$gallery".html" << EOF
+    cat >> $file$gallery".html" << EOF
     <TD WIDTH="$td_width%">
       &nbsp;
     </TD>
@@ -152,33 +351,160 @@ while [ `expr $pic_number % $pic_per_line` != 0 ]
       &nbsp;
     </TD>
 EOF
-    pic_number=`expr $pic_number + 1`
+    pic_number=$(($pic_number + 1))
   done
-    cat >> $theme$gallery".html" << EOF
+    cat >> $file$gallery".html" << EOF
     <TD WIDTH="$td_width%">
       &nbsp;
     </TD>
 EOF
+do_gallery_new_line
+do_gallery_end
 }
 
-do_gallery_end()  # here comes the end
+# CSS starts here
+do_css_file ()
 {
-do_maths  # we need the menu < previous | next > in the end
-cat >> $theme$gallery".html" << EOF
-  </TR>
-</TABLE>
-</CENTER>
-</BODY>
-</HTML>
-EOF
+if [ ! -r $name".css" ]
+ then
+   echo "CSS $name..."
+   cat > $name".css" << EOF
+BODY
+{
+  font-size: 12pt;
+  font-family: Arial, Times, sans-serif;
+  color: black;
+  background: white;
 }
 
-# start of main script
-for pic in *.jpg  # we use all *.jpg images
-do
+.color1 { color: white; background: #a3baff; }
 
+.color2 { color: black; background: #eeeeee; }
+
+.color3 { color: blue; }
+
+STRONG { text-transform: uppercase; }
+
+EOF
+fi
+}
+
+
+##
+# Main execution
+################
+
+#
+# STAGE 1: Parse options
+#
+
+comments="comments"
+nocomments=""
+commentsonly=""
+configset=""
+
+# Parsing borrowed from the parse.bash script bundled with getopt (1)
+
+getopt_output=`getopt -o t:b:c:s:o:uUh -n 'mkgallery' -- "$@"`
+
+if [ $? != 0 ] ; then do_echo_usage ; exit 1 ; fi
+
+# Note the quotes around `$getopt_output': they are essential!
+eval set -- "$getopt_output"
+
+while true
+    do
+	case "$1" 
+	    in
+		-t) title=$2                   ; shift 2 ;;
+		-b) file=$2                    ; shift 2 ;;
+		-c) comments=$2                ; shift 2 ;;
+		-s) css_file=$2		       ; shift 2 ;;
+		-o) config=$2 ; configset="1"  ; shift 2 ;;
+		-u) commentsonly="1"           ; shift   ;;
+		-U) nocomments="1"             ; shift   ;;
+		-h) do_echo_help               ; exit 0  ;;
+		--) shift                      ; break   ;;
+		*) echo "Internal error!"      ; exit 1  ;;
+	esac
+done
+
+if [ "$configset" ] && [ ! -r "$config" ] 
+    then
+	echo "Warning: Config file $config specified but not found!" >&2
+fi
+
+if [ "$css_file" ] && [ ! -r "$css_file" ]
+  then
+    echo "Warning: Cant use the css specified. Using default $1.css"
+fi
+
+if [ "$commentsonly" ] ; then do_make_comments ; exit 0 ; fi
+
+#
+# STAGE 2: Read config file and set control variables
+#
+
+# Read config data
+do_parse_config
+
+# set control variables
+pic_in_gallery=$(($pic_per_line*$lines))
+colspan=$((($pic_per_line*2)-1))
+td_width=$(((100-($pic_per_line-1)*$pic_per_line)/$pic_per_line))
+
+#
+#  STAGE 3: Initialize name, title and basename
+#
+
+# set the name
+name=$1
+
+if [ -z "$name" ] ; then do_echo_usage ; exit 1 ; fi
+
+# set variables if necessary
+
+if [ -z "$title" ] ; then title=$name ; fi
+
+if [ -z "$file" ] ; then file=$name ; fi
+#  then file=`echo $name | tr [:upper:] [:lower:]` ; fi
+
+if [ -z "$comments" ] && [ -r "comments" ] ; then comments="comments" ; fi
+
+
+#
+# STAGE 4: Initialize the comments file
+#
+
+[ "$nocomments" ] || do_make_comments
+
+#
+# STAGE 5: Generate the gallery
+#
+
+# Generate CSS if necessary
+if [ -z "$css_file" ]
+  then
+    css_file=$name".css"
+    do_css_file
+fi
+
+
+# set the total
+do_find_total
+
+# Go through $comments, pick out file.
+for pic in `cat $comments | sed 's/\([^[:space:]]*\.jpg\).*/\1/'`
+do
+    [ ! -r "$pic" ] && continue
+
+    if [ -z "$pic" ]
+	then
+	    echo "Warning: Malformed comments file $comments!" >&2
+	    continue
+    fi
 # we start a new gallery case the rest = 1
-  if [ `expr $pic_number % $pic_in_gallery` = 1 ]
+  if [ $(($pic_number % $pic_in_gallery)) = 1 ]
     then
       if [ $gallery -lt 10 ]
         then
@@ -187,72 +513,57 @@ do
       do_gallery_start
       did_end=0;
   fi
-
 # we create the name and the thumbnails here
-  thumb="._"`echo $pic | sed 's/\.[^\.]*//'`.jpg
+  thumb="$tnprefix"`echo $pic | sed 's/\.[^\.]*//'`.jpg
   echo -n "$pic "
   if [ ! -r $thumb ]
-    then
-      convert -quality 60 -depth 8 -density 72x72  -geometry 120x90 $pic $thumb 2>&1 > /dev/null
+    then   # for small thumbs use -quality 60 -depth 8
+      convert -density 72x72  -geometry 120x120 $pic \
+	$thumb 2>&1 > /dev/null
   fi
-  
-# here comes the thumb and the link
-cat >> $theme$gallery".html" << EOF
+# here comes the thumb, the link and comment
+    cat >> $file$gallery".html" << EOF
     <TD WIDTH="$td_width%" class="color2" ALIGN="center" VALIGN="baseline">
-      <A HREF="$pic"><IMG SRC="$thumb" ALT="$pic" HSPACE="7" VSPACE="7" `imgsize $thumb`><BR>$pic</A>
-    </TD>
+      <A HREF="$pic"><IMG SRC="$thumb" ALT="$pic" HSPACE="7" VSPACE="7" `identify -format "WIDTH=\"%w\" HEIGHT=\"%h\"" $thumb`><BR>$pic</A>
+      <P class="color3">`cat $comments | egrep "^$pic" | sed 's/[^[:space:]]*\.jpg[[:space:]]*//'`</P>
 EOF
-
 # if its = 0, do a new line
-  if [ `expr $pic_number % $pic_per_line` = 0 ]
+  if [ $(($pic_number % $pic_per_line)) = 0 ]
     then
       do_gallery_new_line
-    else
-      cat >> $theme$gallery".html" << EOF
+    else                           
+      cat >> $file$gallery".html" << EOF
     <TD WIDTH="4%">
       &nbsp;
     </TD>
 EOF
   fi
-  
 # if its = 0, we need a new gallery
-  if [ `expr $pic_number % $pic_in_gallery` = 0 ]
-    then    
+  if [ $(($pic_number % $pic_in_gallery)) = 0 ]
+    then
       do_gallery_end
       did_end=1
-      gallery=`expr $gallery + 1`
+      if [ ! -z $gallery ]
+        then
+          gallery=`expr $gallery '+' 1`
+      fi
       echo ""
   fi
-  pic_number=`expr $pic_number + 1`
+  pic_number=$(($pic_number + 1))
 done
 
 # case we still have holes
 # end the gallery with elegance
 if [ $did_end = 0 ]
   then
-    do_fix_gallery
-    do_gallery_new_line
-    do_gallery_end
+    if [ $(($pic_number % $pic_per_line)) = 1 ]
+      then
+        do_gallery_end
+    else
+      do_fix_gallery
+    fi    
 fi
 
-# CSS starts here
-echo -e '\n'"CSS $theme..."
-cat > $theme".css" << EOF
-.color1 { color: white; background: #a3baff; }
-
-.color2 { color: black; background: #eeeeee; }
-
-B { text-transform: uppercase; }
-
-TABLE { text-align: left; }
-
-BODY
-{
-  font-size: 12pt;
-  font-family: Arial, Times, sans-serif;
-  color: black;
-  background: white;
-}
-EOF
+echo
 
 # END
