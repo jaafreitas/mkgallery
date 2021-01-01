@@ -305,7 +305,7 @@ cat >> $file$gallery".html" << EOF
 <TABLE WIDTH="90%" ALIGN="center">
   <TR>
     <TD class="color1" COLSPAN="$colspan">
-      <FONT class="color1"><STRONG>`echo -n $name | tr [:lower:] [:upper:]`</STRONG></FONT>
+      <FONT class="color1"><STRONG>`echo -n $title | tr [:lower:] [:upper:]`</STRONG></FONT>
     </TD>
   </TR>
   <TR>
