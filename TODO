@@ -1,6 +1,0 @@
-* Add recursive option with a list of folders
-
-* Make the script works with any kind of image
-
-* Fix input file names to be filter by s/[^[:alnum:]]/\\&/g
-

@@ -1,9 +1,0 @@
-* Something must be done to avoid 8bit characters in <IMG SRC> (maybe others?)
-Netscape seens to understand but I dont think it will work with all browser
-
-* Netscape doesnt handle CSS very well. After the <TABLE> it doesnt display
-the font color of <BODY> defined in CSS
-
-* text-transform: uppercase is not working for 8bit characters (like á, ç, etc)
-
-* files cant start with a '-'. Will be fix soon.
