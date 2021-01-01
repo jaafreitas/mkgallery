@@ -1,7 +1,7 @@
 <DIV>
 <P class="contents">There are two kinds of galleries: the single and the multi pages.<BR>
 <UL>
-<LI>The <A HREF="single/Fun.html">single</A> one use start_html and end_html files. It also show how the
+<LI>The <A HREF="single/Photostream.html">single</A> one use start_html and end_html files. It also show how the
 comments are shown in the gallery.<BR>
 <P>
 <LI>The <A HREF="multi/DigitalBlasphemy01.html">multi</A> one use only the end_html file and many changes in the css
