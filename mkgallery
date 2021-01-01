@@ -1,6 +1,6 @@
 #!/bin/bash
 # Adriano Freitas <afreitas@geocities.com>
-# Version: 1.0pre1     http://www.geocities.com/jaafreitas/Linux/
+# Version: 1.0pre2     http://www.geocities.com/jaafreitas/Linux/mkgallery/
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,65 +16,90 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-total=`find *.jpg | grep -v "._" | wc -l | awk '{ printf $1 }'`
-# find the amount of pictures in the current folder
-pic_in_gallery=20	# how many picture per gallery?
-gallery=1		# which gallery are we?
-pic_number=1  # picture number
-theme=gallery
+# Make your choices
+pic_per_line=4		# how many pictures per line? if 4 it works "great" for me
+lines=5       		# how many lines? It works with any number
+theme=gallery		# want a name for your gallery?
 
-do_maths()
+# You dont need to change anything below this
+total=`find *.jpg | grep -vc " ._"` # find the amount of pictures in the current folder
+pic_in_gallery=`echo $pic_per_line*$lines|bc`  	# how many picture per gallery?
+gallery=1		# in which gallery are we?
+pic_number=1		# picture number
+colspan=`echo "($pic_per_line*2)-1"|bc` # how many spaces per line?
+td_width=`echo "(100-($pic_per_line-1)*$pic_per_line)/$pic_per_line"|bc`
+
+do_maths()  # let's do some maths
 {
-if [ `echo $gallery*$pic_in_gallery|bc` -gt $total ]
+
+# if exist only one gallery
+if [ ! $gallery ]
   then
     untill=$total
+    echo "    <TD class=\"color2\" COLSPAN=\"$colspan\">
+      Showing 1 - $untill of $total pictures" >> $theme".html"
+
+# here for many galleries
   else
-    untill=`echo $gallery*$pic_in_gallery|bc`
-fi
-echo -n "    <TD class=\"color2\" COLSPAN=\"7\">
+    if [ `echo $gallery*$pic_in_gallery|bc` -gt $total ]
+      then
+        untill=$total
+      else
+        untill=`echo $gallery*$pic_in_gallery|bc`
+    fi
+
+# when there are more pics than the total per gallery
+# it will need more galleries
+if [ $total -gt $pic_in_gallery ]
+  then
+    echo -n "    <TD class=\"color2\" COLSPAN=\"$colspan\">
       Showing `echo "($gallery-1)*$pic_in_gallery+1"|bc` - $untill of $total pictures" >> $theme$gallery".html"
-previous=`expr $gallery - 1`
-if [ $previous -gt 0 ]
-  then
-    if [ $previous -lt 10 ]
+
+# which are the previous and next page?
+    previous=`expr $gallery - 1`
+    if [ $previous -gt 0 ]
       then
-        previous=0$previous
+      if [ $previous -lt 10 ]
+        then
+          previous=0$previous
+      fi
     fi
-fi
-next=`expr $gallery + 1`
-if [ $gallery -le `expr $total / $pic_in_gallery` ]
-  then
-    if [ $next -lt 10 ]
+    next=`expr $gallery + 1`
+    if [ `echo "$gallery*$pic_in_gallery"|bc` -lt $total ]
       then
-        next=0$next
+      if [ $next -lt 10 ]
+        then
+          next=0$next
+      fi
+      else
+        next=0
     fi
-  else
-    next=0
-fi
-if [ $total -gt 20 ]
-  then
+
+# we dont need a link for previous if it doesnt exist
     if [ $previous = 0 ]
       then
         echo -n " [ <FONT COLOR=\"gray\">&#171; Previous</FONT> | " >> $theme$gallery".html"
       else
-        echo -n " [ <A HREF=\""$theme""$previous".html \">&#171; Previous</A> | " >> $theme$gallery".html"
+        echo -n " [ <A HREF=\""$theme""$previous".html\">&#171; Previous</A> | " >> $theme$gallery".html"
     fi
+# we dont need a link for next if it doesnt exist
     if [ $next = 0 ]
       then
         echo "<FONT COLOR=\"gray\">Next &#187;</FONT> ]" >> $theme$gallery".html"
       else
-        echo "<A HREF=\""$theme""$next".html \">Next &#187;</A> ]" >> $theme$gallery".html"
+        echo "<A HREF=\""$theme""$next".html\">Next &#187;</A> ]" >> $theme$gallery".html"
     fi
+fi
 fi
 echo "    </TD>" >> $theme$gallery".html"
 }
 
-do_gallery_new_line()
+do_gallery_new_line()  # it makes the line without thumbnails in the table
 {
 cat >> $theme$gallery".html" << EOF
   </TR>
   <TR>
-    <TD COLSPAN="7">
+    <TD COLSPAN="$colspan">
       &nbsp;
     </TD>
   </TR>
@@ -82,8 +107,14 @@ cat >> $theme$gallery".html" << EOF
 EOF
 }
 
-do_gallery_start()
+do_gallery_start()  # it starts the head and other inicial things
 {
+
+# we dont need 01 if we only have one
+if [ $total -le $pic_in_gallery ]
+  then
+    gallery=""
+fi
 echo $theme$gallery"..."
 cat > $theme$gallery".html" << EOF
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
@@ -97,19 +128,42 @@ cat > $theme$gallery".html" << EOF
 <CENTER>
 <TABLE WIDTH="90%" ALIGN="center">
   <TR>
-    <TD class="color1" COLSPAN="7">
+    <TD class="color1" COLSPAN="$colspan">
       <FONT class="color1"><B> $theme $gallery </B></FONT>
     </TD>
   </TR>
   <TR>
 EOF
-do_maths
-do_gallery_new_line
+
+do_maths  # we need the  menu < previous | next > in the beginning
+do_gallery_new_line  # put a line without thumbs after the menu
 }
 
-do_gallery_end()
+# now it makes the gallery looks better if we have only one line
+do_fix_gallery()
 {
-do_maths
+while [ `expr $pic_number % $pic_per_line` != 0 ]
+  do
+    cat >> $theme$gallery".html" << EOF
+    <TD WIDTH="$td_width%">
+      &nbsp;
+    </TD>
+    <TD WIDTH="4%">
+      &nbsp;
+    </TD>
+EOF
+    pic_number=`expr $pic_number + 1`
+  done
+    cat >> $theme$gallery".html" << EOF
+    <TD WIDTH="$td_width%">
+      &nbsp;
+    </TD>
+EOF
+}
+
+do_gallery_end()  # here comes the end
+{
+do_maths  # we need the menu < previous | next > in the end
 cat >> $theme$gallery".html" << EOF
   </TR>
 </TABLE>
@@ -119,8 +173,11 @@ cat >> $theme$gallery".html" << EOF
 EOF
 }
 
-for pic in *.jpg
+# start of main script
+for pic in *.jpg  # we use all *.jpg images
 do
+
+# we start a new gallery case the rest = 1
   if [ `expr $pic_number % $pic_in_gallery` = 1 ]
     then
       if [ $gallery -lt 10 ]
@@ -130,15 +187,24 @@ do
       do_gallery_start
       did_end=0;
   fi
+
+# we create the name and the thumbnails here
   thumb="._"`echo $pic | sed 's/\.[^\.]*//'`.jpg
   echo -n "$pic "
-  convert -quality 60 -depth 8 -density 72x72  -geometry 120x90 $pic $thumb 2>&1 > /dev/null
+  if [ ! -r $thumb ]
+    then
+      convert -quality 60 -depth 8 -density 72x72  -geometry 120x90 $pic $thumb 2>&1 > /dev/null
+  fi
+  
+# here comes the thumb and the link
 cat >> $theme$gallery".html" << EOF
-    <TD WIDTH="22%" class="color2" ALIGN="center" VALIGN="baseline">
-      <A HREF="$pic"><IMG SRC="$thumb" ALT="$pic" HSPACE="7" VSPACE="7"><BR>$pic</A>
+    <TD WIDTH="$td_width%" class="color2" ALIGN="center" VALIGN="baseline">
+      <A HREF="$pic"><IMG SRC="$thumb" ALT="$pic" HSPACE="7" VSPACE="7" `imgsize $thumb`><BR>$pic</A>
     </TD>
 EOF
-  if [ `expr $pic_number % 4` = 0 ]
+
+# if its = 0, do a new line
+  if [ `expr $pic_number % $pic_per_line` = 0 ]
     then
       do_gallery_new_line
     else
@@ -148,8 +214,10 @@ EOF
     </TD>
 EOF
   fi
+  
+# if its = 0, we need a new gallery
   if [ `expr $pic_number % $pic_in_gallery` = 0 ]
-    then
+    then    
       do_gallery_end
       did_end=1
       gallery=`expr $gallery + 1`
@@ -157,11 +225,17 @@ EOF
   fi
   pic_number=`expr $pic_number + 1`
 done
+
+# case we still have holes
+# end the gallery with elegance
 if [ $did_end = 0 ]
   then
+    do_fix_gallery
     do_gallery_new_line
     do_gallery_end
 fi
+
+# CSS starts here
 echo -e '\n'"CSS $theme..."
 cat > $theme".css" << EOF
 .color1 { color: white; background: #a3baff; }
@@ -172,7 +246,7 @@ B { text-transform: uppercase; }
 
 TABLE { text-align: left; }
 
-BODY 
+BODY
 {
   font-size: 12pt;
   font-family: Arial, Times, sans-serif;
@@ -180,3 +254,5 @@ BODY
   background: white;
 }
 EOF
+
+# END
