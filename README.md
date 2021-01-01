@@ -4,7 +4,9 @@ Generate you own gallery with thumbnails for the internet with this simple shell
 
 ## Let's start with some history
 This project was developed in 2000 when I decided to learn shell script and I had a problem to solve: generate galleries for my pictures. What you will see here is an old code that was hosted on [SourceForge](https://sourceforge.net/projects/mkgallery/) for more than 20 years on a CVS repository. Even though the mkgallery script still works quite well, maybe it's not the best option for your needs nowadays.
-This project was used by many websites in the earliest 2000 and we can still find some of them online, like the [latest pltos](http://astroserve.mines.edu/clf/latest/crlf01.html) from http://astroserve.mines.edu/
+
+This project was used by many websites in the earliest 2000 and we can still find some of them online, like the [latest plots](http://astroserve.mines.edu/clf/latest/crlf01.html) from http://astroserve.mines.edu/.
+
 It is still available on some linux distributions like [gentoo linux](https://gitweb.gentoo.org/repo/gentoo.git/tree/media-gfx/mkgallery).
 
 
