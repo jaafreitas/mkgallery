@@ -1,0 +1,23 @@
+<P>
+<DIV>
+<ul>
+<li><STRONG>How it works:</STRONG>
+	Enter in a folder with jpg files and choose a name for the gallery.
+	You can also specify other option in the command line. See the help
+	('mkgallery -h') for more information.
+<P>
+<li><STRONG>What we need:</STRONG>
+	Basicly we need ImageMagic packages (convert and identify). The other
+	utilities are essential in any Unix system.</p>
+<P>
+<li><STRONG>Features:</STRONG>
+	The script is divided in many functions to help we change anything
+	without breaking other functions. In the files start_html and
+	end_html we can put html code to be inserted in the top and bottom
+	respectively. All pages are HTML 4.0 checked with the validadtor in
+	the W3C website. With the CSS file is possible to change any color,
+	font, style without changing all HTML pages. Also you can specify
+	only one css file for all your pages. Comments can be added for
+	any image.
+</ul>
+</DIV>

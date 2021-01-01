@@ -1,0 +1,20 @@
+BODY
+{
+  font-size: 12pt;
+  font-family: Arial, Times, sans-serif;
+  color: white;
+  background: black;
+}
+
+A:link { color: white; background: black; text-decoration: none; }
+A:visited { color: red; background: black; text-decoration: none; }
+A:hover { color: orange; backround: black; text-decoration: none; font-weight: none; }
+A:active { color: yellow; }
+
+.color1 { color: blue; background: black; }
+
+.color2 { color: white; background: black; }
+
+.color3 { color: blue; }
+
+
