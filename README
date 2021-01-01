@@ -1,0 +1,22 @@
+How it works:
+	just enter in a folder with a lot of images and it will create for you
+	the thumbnails and webpages for you. Easy? :)
+
+What we need:
+	wow, really a lot of tools... Maybe the most dificult one is the convert
+	utility which comes with ImageMagick, but you can use another program to
+	do this job (create the thumbnails).
+
+To do: there are some parts of the script that sounds little bad for me, so why
+	dont you suggest improves to it? :)
+
+Futures: we have a lot of functions in the script, so its really easy to change
+	part on it. We have a gallery_start, gallery_end and other things to
+	make it cleaner. We also have CSS and HTML 4.0 validy pages checked with
+	the validator in the W3C website. One of the most interesting things is
+	we can change all colors with the gallery.css file. We dont need to
+ 	recreate all pages because we decided to change the background color :)
+
+Bugs: 
+	NONE! :) Bug I would like to hear if you found one :)
+
